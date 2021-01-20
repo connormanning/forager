@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import * as Stream from 'stream'
 
-import { List, Storage, Util } from '.'
+import { Forager, List, Util } from '.'
 
 const testdir = join(__dirname, '../test/storage.test')
 
@@ -15,47 +15,47 @@ afterEach(async () => {
 })
 
 test('invalid options', () => {
-  expect(() => Storage.create('s3', 42)).toThrow()
-  expect(() => Storage.create('dropbox', 42)).toThrow()
+  expect(() => Forager.create('s3', 42)).toThrow()
+  expect(() => Forager.create('dropbox', 42)).toThrow()
 })
 
 test('invalid op', async () => {
-  const s3 = Storage.create('s3', { region: '', access: '', secret: '' })
+  const s3 = Forager.create('s3', { region: '', access: '', secret: '' })
   await expect(s3.remove('asdf')).rejects.toThrow('s3: remove not supported')
 
-  const dropbox = Storage.create('dropbox', { token: '' })
+  const dropbox = Forager.create('dropbox', { token: '' })
   await expect(dropbox.remove('asdf')).rejects.toThrow(
     'dropbox: remove not supported'
   )
 })
 
 test('create', () => {
-  expect(() => Storage.create({ protocol: 'asdf' } as any)).toThrow()
+  expect(() => Forager.create({ protocol: 'asdf' } as any)).toThrow()
 
-  Storage.create('')
-  Storage.create('http')
-  Storage.create('https')
+  Forager.create('')
+  Forager.create('http')
+  Forager.create('https')
 })
 
 test('read/write/remove', async () => {
   const filename = join(testdir, 'f.txt')
   const data = JSON.stringify({ a: 1 })
-  await Storage.write(filename, data)
+  await Forager.write(filename, data)
 
-  expect((await Storage.read(filename)).toString()).toEqual(data)
-  expect(await Storage.readString(filename)).toEqual(data)
-  expect(await Storage.readJson(filename)).toEqual({ a: 1 })
+  expect((await Forager.read(filename)).toString()).toEqual(data)
+  expect(await Forager.readString(filename)).toEqual(data)
+  expect(await Forager.readJson(filename)).toEqual({ a: 1 })
 
-  await Storage.remove(filename)
-  await expect(Storage.read(filename)).rejects.toThrow()
+  await Forager.remove(filename)
+  await expect(Forager.read(filename)).rejects.toThrow()
 })
 
 test('streams', async () => {
   const filename = join(testdir, 'f.txt')
   const data = 'sss'
-  await Storage.writeStream(filename, Stream.Readable.from(data))
+  await Forager.writeStream(filename, Stream.Readable.from(data))
   expect(
-    (await Util.drain(await Storage.createReadStream(filename))).toString()
+    (await Util.drain(await Forager.createReadStream(filename))).toString()
   ).toEqual(data)
 })
 
@@ -63,9 +63,9 @@ test('copy', async () => {
   const input = join(testdir, 'a.txt')
   const output = join(testdir, 'b.txt')
   const data = 'ccc'
-  await Storage.write(input, data)
-  await Storage.copyFile(input, output)
-  expect((await Storage.read(output)).toString()).toEqual(data)
+  await Forager.write(input, data)
+  await Forager.copyFile(input, output)
+  expect((await Forager.read(output)).toString()).toEqual(data)
 })
 
 test('list', async () => {
@@ -78,12 +78,12 @@ test('list', async () => {
   await fs.writeFile(join(testdir, 'a/b/3.txt'), '333')
   await fs.writeFile(join(testdir, 'a/b/c/4.txt'), '4444')
 
-  expect(await Storage.list(testdir)).toEqual<List>([
+  expect(await Forager.list(testdir)).toEqual<List>([
     { type: 'file', path: '1.txt', size: 1 },
     { type: 'directory', path: 'a' },
   ])
 
-  expect(await Storage.list(testdir, true)).toEqual<List>([
+  expect(await Forager.list(testdir, true)).toEqual<List>([
     { type: 'file', path: '1.txt', size: 1 },
     { type: 'file', path: 'a/2.txt', size: 2 },
     { type: 'file', path: 'a/b/3.txt', size: 3 },
