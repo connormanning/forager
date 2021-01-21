@@ -7,4 +7,3 @@ export * from './types'
 export * as Util from './util'
 
 export * as Forager from './forager'
-export * as default from './forager'
