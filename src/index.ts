@@ -6,4 +6,6 @@ export * as S3 from './s3'
 export * from './types'
 export * as Util from './util'
 
-export * as Forager from './forager'
+import * as Forager from './forager'
+export { Forager }
+export default Forager
