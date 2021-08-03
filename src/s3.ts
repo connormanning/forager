@@ -1,5 +1,5 @@
 import { S3 } from 'aws-sdk'
-import { getType } from 'mime'
+import { lookup } from 'mime-types'
 import { popSlash } from 'protopath'
 
 import * as Types from './types'
@@ -56,7 +56,7 @@ export function create(
   async function write(path: string, data: Buffer | string) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
-    const ContentType = getType(path) || undefined
+    const ContentType = lookup(path) || undefined
     await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
@@ -69,7 +69,7 @@ export function create(
   async function writeStream(path: string, data: NodeJS.ReadableStream) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
-    const ContentType = getType(path) || undefined
+    const ContentType = lookup(path) || undefined
     await s3.upload({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
