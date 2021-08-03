@@ -15,8 +15,8 @@ afterEach(async () => {
 })
 
 test('invalid options', () => {
-  expect(() => Forager.create('s3', 42)).toThrow()
-  expect(() => Forager.create('dropbox', 42)).toThrow()
+  expect(() => Forager.create('s3', 42 as any)).toThrow()
+  expect(() => Forager.create('dropbox', 42 as any)).toThrow()
 })
 
 test('invalid op', async () => {

@@ -6,3 +6,10 @@ export async function drain(stream: NodeJS.ReadableStream): Promise<Buffer> {
     stream.on('end', () => resolve(Buffer.concat(chunks)))
   })
 }
+
+export function has<K extends string>(
+  o: object,
+  k: K
+): o is { [k in K]: unknown } {
+  return k in o
+}

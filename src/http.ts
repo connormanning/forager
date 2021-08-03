@@ -24,17 +24,26 @@ async function run(url: RequestInfo, options?: RequestInit) {
   return response
 }
 
-export async function read(path: string): Promise<Buffer> {
-  return (await run(path)).buffer()
+export async function read(
+  path: string,
+  options?: RequestInit
+): Promise<Buffer> {
+  return (await run(path, options)).buffer()
 }
-export async function createReadStream(path: string) {
-  return (await run(path)).body
+export async function createReadStream(path: string, options?: RequestInit) {
+  return (await run(path, options)).body
 }
-export async function readJson(path: string): Promise<any> {
-  return (await run(path)).json()
+export async function readJson(
+  path: string,
+  options?: RequestInit
+): Promise<any> {
+  return (await run(path, options)).json()
 }
-export async function readText(path: string): Promise<string> {
-  return (await run(path)).text()
+export async function readText(
+  path: string,
+  options?: RequestInit
+): Promise<string> {
+  return (await run(path, options)).text()
 }
 
 export function create(protocol: 'http' | 'https') {
@@ -42,11 +51,11 @@ export function create(protocol: 'http' | 'https') {
     return `${protocol}://${path}`
   }
 
-  async function protoRead(path: string) {
-    return read(prefix(path))
+  async function protoRead(path: string, options?: RequestInit) {
+    return read(prefix(path), options)
   }
-  async function protoCreateReadStream(path: string) {
-    return createReadStream(prefix(path))
+  async function protoCreateReadStream(path: string, options?: RequestInit) {
+    return createReadStream(prefix(path), options)
   }
 
   return {

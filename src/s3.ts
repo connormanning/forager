@@ -1,18 +1,27 @@
 import { S3 } from 'aws-sdk'
+import { getType } from 'mime'
 import { popSlash } from 'protopath'
 
 import * as Types from './types'
+import { has } from './util'
 
 const apiVersion = '2014-11-06'
 
 export type Options = { region?: string; access: string; secret: string }
-export function isOptions(o: any): o is Options {
-  return (
+export function isOptions(o: unknown): o is Options {
+  if (
     typeof o === 'object' &&
-    (!o.region || typeof o.region === 'string') &&
+    o !== null &&
+    o !== undefined &&
+    has(o, 'access') &&
+    has(o, 'secret') &&
     typeof o.access === 'string' &&
     typeof o.secret === 'string'
-  )
+  ) {
+    return !has(o, 'region') || typeof o.region === 'string'
+  }
+
+  return false
 }
 
 function getS3(options?: Options): S3 {
@@ -47,7 +56,8 @@ export function create(
   async function write(path: string, data: Buffer | string) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
-    await s3.putObject({ Bucket, Key, Body: data }).promise()
+    const ContentType = getType(path) || undefined
+    await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
   async function createReadStream(path: string) {
@@ -59,7 +69,8 @@ export function create(
   async function writeStream(path: string, data: NodeJS.ReadableStream) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
-    await s3.upload({ Bucket, Key, Body: data }).promise()
+    const ContentType = getType(path) || undefined
+    await s3.upload({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
   async function list(path: string): Promise<Types.List> {

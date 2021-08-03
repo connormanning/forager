@@ -7,7 +7,13 @@ import * as Util from './util'
 
 export type Options = { token: string }
 export function isOptions(o: any): o is Options {
-  return typeof o === 'object' && typeof o.token === 'string'
+  return (
+    typeof o === 'object' &&
+    o !== null &&
+    o !== undefined &&
+    Util.has(o, 'token') &&
+    typeof o.token === 'string'
+  )
 }
 
 /**

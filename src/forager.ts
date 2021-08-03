@@ -5,7 +5,10 @@ import * as File from './file'
 import * as Http from './http'
 import * as S3 from './s3'
 
+import { Options } from './options'
 import * as Types from './types'
+
+export { Options }
 
 function createPartial(protocol: string, options?: any): Partial<Types.Driver> {
   switch (protocol) {
@@ -57,7 +60,13 @@ function createThrower(protocol: string): Types.Driver {
   )
 }
 
-export function create(protocol: string, options?: any): Types.Driver {
+export function create(protocol: 's3', options?: S3.Options): Types.Driver
+export function create(
+  protocol: 'dropbox' | 'dbx',
+  options?: Dropbox.Options
+): Types.Driver
+export function create(protocol: string, options?: Options): Types.Driver
+export function create(protocol: string, options?: unknown): Types.Driver {
   const thrower = createThrower(protocol)
   const partial = createPartial(protocol, options)
   return { ...thrower, ...partial }

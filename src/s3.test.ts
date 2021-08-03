@@ -40,14 +40,33 @@ test('read', async () => {
 })
 
 test('write', async () => {
-  const mock = putObject.mockImplementationOnce((v: any): any => {
-    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt', Body: 'asdf' })
-    return { promise: async () => {} }
-  })
+  function getMockOnce(expected: any) {
+    return putObject.mockImplementationOnce((v: any): any => {
+      expect(v).toEqual(expected)
+      return { promise: async () => {} }
+    })
+  }
 
   const s3 = S3.create()
-  await s3.write('bucket/key.txt', 'asdf')
-  expect(mock).toHaveBeenCalled()
+
+  // Auto-determined content type.
+  {
+    const mock = getMockOnce({
+      Bucket: 'bucket',
+      Key: 'key.txt',
+      Body: 'asdf',
+      ContentType: 'text/plain',
+    })
+    await s3.write('bucket/key.txt', 'asdf')
+    expect(mock).toHaveBeenCalled()
+  }
+
+  // Indeterminate content type.
+  {
+    const mock = getMockOnce({ Bucket: 'bucket', Key: 'key', Body: 'asdf' })
+    await s3.write('bucket/key', 'asdf')
+    expect(mock).toHaveBeenCalled()
+  }
 
   expect(s3.write('bucket', 'asdf')).rejects.toThrow()
 })
@@ -193,23 +212,50 @@ test('read stream: failure', async () => {
 })
 
 test('write stream', async () => {
-  const mock = upload.mockImplementationOnce((v: any): any => {
-    const stream: Stream.Readable = v.Body
-    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt', Body: stream })
-    return {
-      promise: async () => {
-        const data = await Util.drain(stream)
-        expect(data.toString()).toEqual('asdf')
-      },
-    }
-  })
+  function getMockOnce(expected: any) {
+    return upload.mockImplementationOnce((v: any): any => {
+      const stream: Stream.Readable = v.Body
+      expect(v).toEqual({ ...expected, Body: stream })
+      /*
+      expect(v).toEqual({
+        Bucket: 'bucket',
+        Key: 'key.json',
+        Body: stream,
+        ContentType: 'application/json',
+      })
+      */
+      return {
+        promise: async () => {
+          const data = await Util.drain(stream)
+          expect(data.toString()).toEqual('42')
+        },
+      }
+    })
+  }
 
   const s3 = S3.create()
-  await s3.writeStream(
-    'bucket/key.txt',
-    Stream.Readable.from([Buffer.from('asdf')])
-  )
-  expect(mock).toHaveBeenCalled()
+
+  {
+    const mock = getMockOnce({
+      Bucket: 'bucket',
+      Key: 'key.json',
+      ContentType: 'application/json',
+    })
+    await s3.writeStream(
+      'bucket/key.json',
+      Stream.Readable.from([Buffer.from('42')])
+    )
+    expect(mock).toHaveBeenCalled()
+  }
+
+  {
+    const mock = getMockOnce({ Bucket: 'bucket', Key: 'key' })
+    await s3.writeStream(
+      'bucket/key',
+      Stream.Readable.from([Buffer.from('42')])
+    )
+    expect(mock).toHaveBeenCalled()
+  }
 
   expect(
     s3.writeStream('bucket', Stream.Readable.from('asdf'))
