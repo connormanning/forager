@@ -13,7 +13,7 @@ export class ResponseError extends Error {
   }
 }
 
-type Options = RequestInit & Types.Options
+type Options = RequestInit & Types.ReadOptions
 
 async function run(url: RequestInfo, options?: RequestInit) {
   const response = await fetch(url, options)

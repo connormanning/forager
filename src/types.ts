@@ -8,10 +8,10 @@ export type PathInfo = {
 }
 export type List = PathInfo[]
 export { Range }
-export type Options = { range?: Range }
+export type ReadOptions = { range?: Range }
 
 export type Readable = {
-  read(path: string, options?: Options): Promise<Buffer>
+  read(path: string, options?: ReadOptions): Promise<Buffer>
 }
 export type Writable = {
   write(path: string, data: Buffer | string): Promise<void>
@@ -19,7 +19,7 @@ export type Writable = {
 export type StreamReadable = {
   createReadStream(
     path: string,
-    options?: Options
+    options?: ReadOptions
   ): Promise<NodeJS.ReadableStream>
 }
 export type StreamWritable = {

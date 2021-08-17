@@ -4,7 +4,7 @@ import { join } from 'path'
 import * as Types from './types'
 import { drain } from './util'
 
-export async function read(path: string, options?: Types.Options) {
+export async function read(path: string, options?: Types.ReadOptions) {
   return drain(await createReadStream(path, options))
 }
 
@@ -14,7 +14,7 @@ export async function write(path: string, data: Buffer | string) {
 
 export async function createReadStream(
   path: string,
-  { range }: Types.Options = {}
+  { range }: Types.ReadOptions = {}
 ) {
   const [begin = 0, end = Infinity] = range || []
   if (begin < 0 || end < 0 || begin > end) throw new Error('Invalid range')

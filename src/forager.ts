@@ -76,23 +76,26 @@ export function getProtocolOrDefault(path: string) {
   return getProtocol(path) || 'file'
 }
 
-export async function read(path: string) {
+export async function read(path: string, options?: Types.ReadOptions) {
   const s = create(getProtocolOrDefault(path))
-  return s.read(stripProtocol(path))
+  return s.read(stripProtocol(path), options)
 }
-export async function readString(path: string) {
-  return (await read(path)).toString('utf8')
+export async function readString(path: string, options?: Types.ReadOptions) {
+  return (await read(path, options)).toString('utf8')
 }
-export async function readJson(path: string) {
-  return JSON.parse(await readString(path))
+export async function readJson(path: string, options?: Types.ReadOptions) {
+  return JSON.parse(await readString(path, options))
 }
 export async function write(path: string, data: Buffer | string) {
   const s = create(getProtocolOrDefault(path))
   return s.write(stripProtocol(path), data)
 }
-export async function createReadStream(path: string) {
+export async function createReadStream(
+  path: string,
+  options?: Types.ReadOptions
+) {
   const s = create(getProtocolOrDefault(path))
-  return s.createReadStream(stripProtocol(path))
+  return s.createReadStream(stripProtocol(path), options)
 }
 export async function writeStream(path: string, data: NodeJS.ReadableStream) {
   const s = create(getProtocolOrDefault(path))

@@ -49,7 +49,7 @@ export function create(
 
   async function read(
     path: string,
-    { range }: Types.Options = {}
+    { range }: Types.ReadOptions = {}
   ): Promise<Buffer> {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
@@ -67,7 +67,10 @@ export function create(
     await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
-  async function createReadStream(path: string, { range }: Types.Options = {}) {
+  async function createReadStream(
+    path: string,
+    { range }: Types.ReadOptions = {}
+  ) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
 
