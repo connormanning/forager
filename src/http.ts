@@ -1,5 +1,8 @@
 import fetch, { RequestInfo, RequestInit } from 'node-fetch'
 
+import { Range } from './range'
+import * as Types from './types'
+
 export class ResponseError extends Error {
   code: number
   body: any
@@ -9,6 +12,8 @@ export class ResponseError extends Error {
     this.body = body
   }
 }
+
+type Options = RequestInit & Types.Options
 
 async function run(url: RequestInfo, options?: RequestInit) {
   const response = await fetch(url, options)
@@ -24,26 +29,24 @@ async function run(url: RequestInfo, options?: RequestInit) {
   return response
 }
 
-export async function read(
-  path: string,
-  options?: RequestInit
-): Promise<Buffer> {
-  return (await run(path, options)).buffer()
+async function get(url: RequestInfo, { range, ...options }: Options = {}) {
+  if (range) {
+    options.headers = { ...options.headers, Range: Range.toHeaderValue(range) }
+  }
+  return run(url, options)
 }
-export async function createReadStream(path: string, options?: RequestInit) {
-  return (await run(path, options)).body
+
+export async function read(path: string, options?: Options): Promise<Buffer> {
+  return (await get(path, options)).buffer()
 }
-export async function readJson(
-  path: string,
-  options?: RequestInit
-): Promise<any> {
-  return (await run(path, options)).json()
+export async function createReadStream(path: string, options?: Options) {
+  return (await get(path, options)).body
 }
-export async function readText(
-  path: string,
-  options?: RequestInit
-): Promise<string> {
-  return (await run(path, options)).text()
+export async function readJson(path: string, options?: Options) {
+  return (await get(path, options)).json()
+}
+export async function readText(path: string, options?: Options) {
+  return (await get(path, options)).text()
 }
 
 export function create(protocol: 'http' | 'https') {
@@ -51,10 +54,10 @@ export function create(protocol: 'http' | 'https') {
     return `${protocol}://${path}`
   }
 
-  async function protoRead(path: string, options?: RequestInit) {
+  async function protoRead(path: string, options?: Options) {
     return read(prefix(path), options)
   }
-  async function protoCreateReadStream(path: string, options?: RequestInit) {
+  async function protoCreateReadStream(path: string, options?: Options) {
     return createReadStream(prefix(path), options)
   }
 

@@ -78,6 +78,12 @@ test('read: failure', async () => {
   expect(mock).toHaveBeenCalled()
 })
 
+test('read: range', async () => {
+  await expect(
+    Dropbox.create(cred).read('asdf', { range: [0, 1] })
+  ).rejects.toThrow()
+})
+
 test('read: missing binary data', async () => {
   const mock = filesDownload.mockImplementationOnce(() => ({ result: {} }))
   await expect(Dropbox.create(cred).read('asdf')).rejects.toThrow(
@@ -110,6 +116,12 @@ test('read: stream', async () => {
   expect(mock).toHaveBeenCalledWith({ path: `/${filename}` })
   const data = (await Util.drain(stream)).toString()
   expect(data).toEqual('asdf')
+})
+
+test('read: stream range', async () => {
+  await expect(
+    Dropbox.create(cred).createReadStream('asdf', { range: [0, 1] })
+  ).rejects.toThrow()
 })
 
 test('write: failure', async () => {

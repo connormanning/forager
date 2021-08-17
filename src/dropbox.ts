@@ -52,7 +52,11 @@ export function create({
   Types.StreamWritable {
   const dbx = new Dropbox({ accessToken, fetch })
 
-  async function read(path: string): Promise<Buffer> {
+  async function read(
+    path: string,
+    { range }: Types.Options = {}
+  ): Promise<Buffer> {
+    if (range) throw new Error('Range read not supported for Dropbox')
     const response = await dbx.filesDownload({
       path: coercePath(path),
     })
@@ -69,7 +73,8 @@ export function create({
 
   // This API doesn't actually support streaming, so we'll just pass through to
   // the normal read/write for compatibility.
-  async function createReadStream(path: string) {
+  async function createReadStream(path: string, { range }: Types.Options = {}) {
+    if (range) throw new Error('Range read not supported for Dropbox')
     const buffer = await read(path)
     return Readable.from(buffer)
   }

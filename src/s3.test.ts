@@ -1,5 +1,5 @@
 import Stream from 'stream'
-import { S3, Util } from '.'
+import { Range, S3, Util } from '.'
 
 const getObject = jest.fn()
 const putObject = jest.fn()
@@ -14,6 +14,9 @@ jest.mock('aws-sdk', () => ({
   })),
 }))
 
+beforeEach(() => jest.clearAllMocks())
+afterEach(() => jest.clearAllMocks())
+
 test('credentials', () => {
   expect(S3.isOptions({ access: '', secret: '' })).toBe(true)
   expect(S3.isOptions({ region: '', access: '', secret: '' })).toBe(true)
@@ -24,11 +27,9 @@ test('credentials', () => {
 })
 
 test('read', async () => {
-  const mock = getObject.mockImplementationOnce((v: any): any => {
+  const mock = getObject.mockImplementation((v: any): any => {
     expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
-    return {
-      promise: async () => ({ Body: Buffer.from('asdf') }),
-    }
+    return { promise: async () => ({ Body: Buffer.from('asdf') }) }
   })
 
   const s3 = S3.create()
@@ -37,6 +38,19 @@ test('read', async () => {
 
   expect(s3.read('')).rejects.toThrow()
   expect(s3.read('bucket')).rejects.toThrow()
+})
+
+test('read range', async () => {
+  const data = 'abcdef'
+  const mock = getObject.mockImplementation((v: any): any => {
+    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt', Range: 'bytes=1-4' })
+    return { promise: async () => ({ Body: Buffer.from(data.slice(1, 5)) }) }
+  })
+
+  const s3 = S3.create()
+  expect(await s3.read('bucket/key.txt', { range: [1, 5] })).toEqual(
+    Buffer.from(data.slice(1, 5))
+  )
 })
 
 test('write', async () => {
@@ -127,7 +141,7 @@ test('list', async () => {
 })
 
 test('list root', async () => {
-  const mock = listObjectsV2.mockImplementationOnce((v: any): any => {
+  const mock = listObjectsV2.mockImplementation((v: any): any => {
     expect(v).toEqual({
       Bucket: 'bucket',
       Prefix: '',
@@ -148,8 +162,6 @@ test('list root', async () => {
     { path: 'file1.txt', type: 'file', size: 42 },
   ])
   expect(mock).toHaveBeenCalled()
-
-  mock.mockClear()
 })
 
 test('bad list', async () => {
@@ -172,7 +184,7 @@ test('bad list', async () => {
 })
 
 test('read stream', async () => {
-  const mock = getObject.mockImplementationOnce((v: any): any => {
+  const mock = getObject.mockImplementation((v: any): any => {
     expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
     return {
       createReadStream: () => Stream.Readable.from([Buffer.from('asdf')]),
@@ -188,9 +200,26 @@ test('read stream', async () => {
   expect(s3.createReadStream('bucket')).rejects.toThrow()
 })
 
+test('read stream: range', async () => {
+  const data = 'abcdef'
+  const mock = getObject.mockImplementation((v: any): any => {
+    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt', Range: 'bytes=1-4' })
+    return {
+      createReadStream: () =>
+        Stream.Readable.from([Buffer.from(data.slice(1, 5))]),
+    }
+  })
+
+  const s3 = S3.create()
+  const stream = await s3.createReadStream('bucket/key.txt', { range: [1, 5] })
+
+  expect((await Util.drain(stream)).toString()).toEqual(data.slice(1, 5))
+  expect(mock).toHaveBeenCalled()
+})
+
 test('read stream: failure', async () => {
   const abort = jest.fn()
-  const mock = getObject.mockImplementationOnce((v: any): any => {
+  const mock = getObject.mockImplementation((v: any): any => {
     return {
       createReadStream: () => Stream.Readable.from('asdf'),
       abort,
@@ -213,17 +242,9 @@ test('read stream: failure', async () => {
 
 test('write stream', async () => {
   function getMockOnce(expected: any) {
-    return upload.mockImplementationOnce((v: any): any => {
+    return upload.mockImplementation((v: any): any => {
       const stream: Stream.Readable = v.Body
       expect(v).toEqual({ ...expected, Body: stream })
-      /*
-      expect(v).toEqual({
-        Bucket: 'bucket',
-        Key: 'key.json',
-        Body: stream,
-        ContentType: 'application/json',
-      })
-      */
       return {
         promise: async () => {
           const data = await Util.drain(stream)

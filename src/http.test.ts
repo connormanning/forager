@@ -1,7 +1,7 @@
 import { Server } from 'http'
 import Koa from 'koa'
 
-import { Http, Util } from '.'
+import { Http, Range, Util } from '.'
 
 const port = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3942
 const path = `localhost:${port}`
@@ -23,6 +23,35 @@ test('read', async () => {
 
   expect((await Http.read(url)).toString()).toEqual('asdf')
   expect((await Http.create('http').read(path)).toString()).toEqual('asdf')
+
+  await destroy(server)
+})
+
+test('read range', async () => {
+  const app = new Koa()
+  const data = 'abcdef'
+  app.use((ctx) => {
+    const { range } = ctx.request.headers
+    if (typeof range !== 'string') throw new Error('Missing range header')
+    const [begin, end] = Range.fromHeaderValue(range)
+    ctx.body = data.slice(begin, end)
+  })
+  const server = await listen(app)
+
+  async function get(range: Range) {
+    return (await Http.read(url, { range })).toString()
+  }
+
+  expect(await get([1, 5])).toEqual(data.slice(1, 5))
+  expect(await get([1, Infinity])).toEqual(data.slice(1))
+
+  expect(
+    (
+      await Util.drain(await Http.createReadStream(url, { range: [1, 5] }))
+    ).toString()
+  ).toEqual(data.slice(1, 5))
+
+  await expect(Http.read(url, { range: [3, 2] })).rejects.toThrow()
 
   await destroy(server)
 })

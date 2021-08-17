@@ -2,18 +2,29 @@ import fs from 'fs'
 import { join } from 'path'
 
 import * as Types from './types'
+import { drain } from './util'
 
-export async function read(path: string) {
-  return fs.promises.readFile(path)
+export async function read(path: string, options?: Types.Options) {
+  return drain(await createReadStream(path, options))
 }
 
 export async function write(path: string, data: Buffer | string) {
   return fs.promises.writeFile(path, data)
 }
 
-export async function createReadStream(path: string) {
+export async function createReadStream(
+  path: string,
+  { range }: Types.Options = {}
+) {
+  const [begin = 0, end = Infinity] = range || []
+  if (begin < 0 || end < 0 || begin > end) throw new Error('Invalid range')
+
   await fs.promises.access(path)
-  return fs.createReadStream(path)
+  return fs.createReadStream(path, {
+    start: begin,
+    end: end - 1,
+    autoClose: true,
+  })
 }
 
 export async function writeStream(path: string, data: NodeJS.ReadableStream) {

@@ -47,10 +47,17 @@ export function create(
   Types.StreamWritable {
   const s3 = getS3(options)
 
-  async function read(path: string): Promise<Buffer> {
+  async function read(
+    path: string,
+    { range }: Types.Options = {}
+  ): Promise<Buffer> {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
-    const { Body: buffer } = await s3.getObject({ Bucket, Key }).promise()
+
+    const options: S3.GetObjectRequest = { Bucket, Key }
+    if (range) options.Range = Types.Range.toHeaderValue(range)
+
+    const { Body: buffer } = await s3.getObject(options).promise()
     return buffer as Buffer
   }
   async function write(path: string, data: Buffer | string) {
@@ -60,10 +67,14 @@ export function create(
     await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
-  async function createReadStream(path: string) {
+  async function createReadStream(path: string, { range }: Types.Options = {}) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
-    const request = s3.getObject({ Bucket, Key })
+
+    const options: S3.GetObjectRequest = { Bucket, Key }
+    if (range) options.Range = Types.Range.toHeaderValue(range)
+
+    const request = s3.getObject(options)
     return request.createReadStream().on('error', () => request.abort())
   }
   async function writeStream(path: string, data: NodeJS.ReadableStream) {

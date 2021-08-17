@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import * as Stream from 'stream'
 
-import { File, Util } from '.'
+import { File, Range, Util } from '.'
 
 const testdir = path.join(__dirname, '../test/file.test')
 
@@ -19,6 +19,31 @@ test('read', async () => {
   const data = 'aaa'
   await fs.writeFile(filename, data)
   expect((await File.read(filename)).toString()).toEqual(data)
+
+  await expect(File.read(filename + 'f')).rejects.toThrow()
+})
+
+test('read range', async () => {
+  const filename = path.join(testdir, 'a.txt')
+  const data = 'abcdef'
+  await fs.writeFile(filename, data)
+
+  async function get(range: Range) {
+    return (await File.read(filename, { range })).toString()
+  }
+
+  // Various equivalent range requests for all of the data.
+  expect((await get([0, data.length])).toString()).toEqual(data)
+  expect((await get([0, Infinity])).toString()).toEqual(data)
+
+  expect((await get([2, 4])).toString()).toEqual(data.slice(2, 4))
+  expect((await get([1, 5])).toString()).toEqual(data.slice(1, 5))
+
+  await expect(get([3, 2])).rejects.toThrow()
+  await expect(get([-1, 2])).rejects.toThrow()
+  await expect(get([1, -2])).rejects.toThrow()
+
+  await expect(File.read(filename + 'f', { range: [0, 1] })).rejects.toThrow()
 })
 
 test('write', async () => {
@@ -36,6 +61,26 @@ test('read stream', async () => {
   const stream = await File.create().createReadStream(filename)
   const result = await Util.drain(stream)
   expect(result.toString()).toEqual(data)
+
+  await expect(File.createReadStream(filename + 'f')).rejects.toThrow()
+})
+
+test('read stream range', async () => {
+  const data = 'abcdef'
+  const filename = path.join(testdir, 'a.txt')
+  await fs.writeFile(filename, data)
+
+  async function get(range: Range) {
+    const stream = await File.create().createReadStream(filename, { range })
+    return (await Util.drain(stream)).toString()
+  }
+
+  // Various equivalent range requests for all of the data.
+  expect(await get([0, data.length])).toEqual(data)
+  expect(await get([0, Infinity])).toEqual(data)
+
+  expect(await get([2, 4])).toEqual(data.slice(2, 4))
+  expect(await get([1, 5])).toEqual(data.slice(1, 5))
 })
 
 test('write stream', async () => {
