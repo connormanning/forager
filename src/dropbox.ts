@@ -1,9 +1,9 @@
-import { Readable } from 'stream'
-import D, { Dropbox } from 'dropbox'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
+import { Dropbox } from 'dropbox'
+import * as D from 'dropbox'
 
 import * as Types from './types'
-import * as Util from './util'
+import * as Utils from './utils'
 
 export type Options = { token: string }
 export function isOptions(o: any): o is Options {
@@ -11,7 +11,7 @@ export function isOptions(o: any): o is Options {
     typeof o === 'object' &&
     o !== null &&
     o !== undefined &&
-    Util.has(o, 'token') &&
+    Utils.has(o, 'token') &&
     typeof o.token === 'string'
   )
 }
@@ -47,15 +47,15 @@ export function create({
   token: accessToken,
 }: Options): Types.Listable &
   Types.Readable &
-  Types.Writable &
+  Types.Writable /* &
   Types.StreamReadable &
-  Types.StreamWritable {
+  Types.StreamWritable */ {
   const dbx = new Dropbox({ accessToken, fetch })
 
   async function read(
     path: string,
     { range }: Types.ReadOptions = {}
-  ): Promise<Buffer> {
+  ): Promise<ArrayBuffer> {
     if (range) throw new Error('Range read not supported for Dropbox')
     const response = await dbx.filesDownload({
       path: coercePath(path),
@@ -71,6 +71,7 @@ export function create({
     await dbx.filesUpload({ path: coercePath(path), contents })
   }
 
+  /*
   // This API doesn't actually support streaming, so we'll just pass through to
   // the normal read/write for compatibility.
   async function createReadStream(
@@ -86,6 +87,7 @@ export function create({
     const data = await Util.drain(stream)
     return write(path, data)
   }
+  */
 
   async function list(path: string): Promise<Types.List> {
     try {
@@ -105,5 +107,5 @@ export function create({
     }
   }
 
-  return { list, read, write, createReadStream, writeStream }
+  return { list, read, write /*, createReadStream, writeStream */ }
 }

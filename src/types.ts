@@ -11,20 +11,22 @@ export { Range }
 export type ReadOptions = { range?: Range }
 
 export type Readable = {
-  read(path: string, options?: ReadOptions): Promise<Buffer>
+  read(path: string, options?: ReadOptions): Promise<ArrayBuffer>
 }
 export type Writable = {
-  write(path: string, data: Buffer | string): Promise<void>
+  write(path: string, data: ArrayBuffer | string): Promise<void>
 }
+/*
 export type StreamReadable = {
   createReadStream(
     path: string,
     options?: ReadOptions
-  ): Promise<NodeJS.ReadableStream>
+  ): Promise<ReadableStream<Uint8Array>>
 }
 export type StreamWritable = {
-  writeStream(path: string, data: NodeJS.ReadableStream): Promise<void>
+  writeStream(path: string, data: ReadableStream<Uint8Array>): Promise<void>
 }
+*/
 export type Listable = {
   list(path: string): Promise<List>
 }
@@ -34,7 +36,9 @@ export type Removable = {
 
 export type Driver = Readable &
   Writable &
+  /*
   StreamReadable &
   StreamWritable &
+  */
   Listable &
   Removable

@@ -1,7 +1,3 @@
-import { Readable } from 'stream'
-
-import * as Util from './util'
-
 import { Dropbox } from '.'
 
 afterEach(jest.clearAllMocks)
@@ -103,6 +99,7 @@ test('read: success', async () => {
   expect(mock).toHaveBeenCalledWith({ path: `/${filename}` })
 })
 
+/*
 test('read: stream', async () => {
   const filename = 'a.txt'
   const mock = filesDownload.mockImplementationOnce(() => ({
@@ -123,6 +120,7 @@ test('read: stream range', async () => {
     Dropbox.create(cred).createReadStream('asdf', { range: [0, 1] })
   ).rejects.toThrow()
 })
+*/
 
 test('write: failure', async () => {
   const path = 'a.txt'
@@ -146,6 +144,7 @@ test('write: success', async () => {
   expect(mock).toHaveBeenCalledWith({ path: `/${path}`, contents: data })
 })
 
+/*
 test('write: stream', async () => {
   const path = 'a.txt'
   const data = Buffer.from('asdf')
@@ -156,3 +155,4 @@ test('write: stream', async () => {
   await d.writeStream(path, stream)
   expect(mock).toHaveBeenCalledWith({ path: `/${path}`, contents: data })
 })
+*/

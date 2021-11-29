@@ -3,7 +3,7 @@ import { lookup } from 'mime-types'
 import { popSlash } from 'protopath'
 
 import * as Types from './types'
-import { has } from './util'
+import { has } from './utils'
 
 const apiVersion = '2014-11-06'
 
@@ -42,31 +42,43 @@ export function create(
   options?: Options
 ): Types.Listable &
   Types.Readable &
-  Types.Writable &
+  Types.Writable /*
+  &
   Types.StreamReadable &
-  Types.StreamWritable {
+  Types.StreamWritable
+  */ {
   const s3 = getS3(options)
 
   async function read(
     path: string,
     { range }: Types.ReadOptions = {}
-  ): Promise<Buffer> {
+  ): Promise<ArrayBuffer> {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
 
     const options: S3.GetObjectRequest = { Bucket, Key }
     if (range) options.Range = Types.Range.toHeaderValue(range)
 
-    const { Body: buffer } = await s3.getObject(options).promise()
-    return buffer as Buffer
+    const { Body: body } = await s3.getObject(options).promise()
+    if (!body) {
+      throw new Error('Missing response body from S3')
+    }
+    if (body instanceof Buffer || body instanceof Uint8Array) {
+      return body.buffer.slice(
+        body.byteOffset,
+        body.byteOffset + body.byteLength
+      )
+    }
+    throw new Error('Invalid response from S3')
   }
-  async function write(path: string, data: Buffer | string) {
+  async function write(path: string, data: ArrayBuffer | string) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
     const ContentType = lookup(path) || undefined
     await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
   }
 
+  /*
   async function createReadStream(
     path: string,
     { range }: Types.ReadOptions = {}
@@ -86,6 +98,7 @@ export function create(
     const ContentType = lookup(path) || undefined
     await s3.upload({ Bucket, Key, Body: data, ContentType }).promise()
   }
+  */
 
   async function list(path: string): Promise<Types.List> {
     const [Bucket, Key] = getParts(path)
@@ -123,8 +136,10 @@ export function create(
   return {
     read,
     write,
+    /*
     createReadStream,
     writeStream,
+    */
     list,
   }
 }

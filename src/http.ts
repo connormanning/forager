@@ -1,4 +1,4 @@
-import fetch, { RequestInfo, RequestInit } from 'node-fetch'
+import fetch from 'cross-fetch'
 
 import { Range } from './range'
 import * as Types from './types'
@@ -36,12 +36,24 @@ async function get(url: RequestInfo, { range, ...options }: Options = {}) {
   return run(url, options)
 }
 
-export async function read(path: string, options?: Options): Promise<Buffer> {
-  return (await get(path, options)).buffer()
+export async function read(
+  path: string,
+  options?: Options
+): Promise<ArrayBuffer> {
+  const response = await get(path, options)
+  return response.arrayBuffer()
 }
-export async function createReadStream(path: string, options?: Options) {
-  return (await get(path, options)).body
+/*
+export async function createReadStream(
+  path: string,
+  options?: Options
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await get(path, options)
+  const body = response.body
+  if (!body) throw new Error('Missing response body')
+  return body
 }
+*/
 export async function readJson(path: string, options?: Options) {
   return (await get(path, options)).json()
 }
@@ -57,12 +69,14 @@ export function create(protocol: 'http' | 'https') {
   async function protoRead(path: string, options?: Options) {
     return read(prefix(path), options)
   }
+  /*
   async function protoCreateReadStream(path: string, options?: Options) {
     return createReadStream(prefix(path), options)
   }
+  */
 
   return {
     read: protoRead,
-    createReadStream: protoCreateReadStream,
+    // createReadStream: protoCreateReadStream,
   }
 }

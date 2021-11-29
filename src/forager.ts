@@ -81,15 +81,16 @@ export async function read(path: string, options?: Types.ReadOptions) {
   return s.read(stripProtocol(path), options)
 }
 export async function readString(path: string, options?: Types.ReadOptions) {
-  return (await read(path, options)).toString('utf8')
+  return (await read(path, options)).toLocaleString()
 }
 export async function readJson(path: string, options?: Types.ReadOptions) {
   return JSON.parse(await readString(path, options))
 }
-export async function write(path: string, data: Buffer | string) {
+export async function write(path: string, data: ArrayBuffer | string) {
   const s = create(getProtocolOrDefault(path))
   return s.write(stripProtocol(path), data)
 }
+/*
 export async function createReadStream(
   path: string,
   options?: Types.ReadOptions
@@ -97,12 +98,17 @@ export async function createReadStream(
   const s = create(getProtocolOrDefault(path))
   return s.createReadStream(stripProtocol(path), options)
 }
-export async function writeStream(path: string, data: NodeJS.ReadableStream) {
+export async function writeStream(
+  path: string,
+  data: ReadableStream<Uint8Array>
+) {
   const s = create(getProtocolOrDefault(path))
   return s.writeStream(stripProtocol(path), data)
 }
+*/
 export async function copyFile(input: string, output: string) {
-  return writeStream(output, await createReadStream(input))
+  return write(output, await read(input))
+  // return writeStream(output, await createReadStream(input))
 }
 export async function list(
   dir: string,

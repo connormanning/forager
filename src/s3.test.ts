@@ -1,5 +1,5 @@
-import Stream from 'stream'
-import { Range, S3, Util } from '.'
+// import Stream from 'stream'
+import { S3, Utils } from '.'
 
 const getObject = jest.fn()
 const putObject = jest.fn()
@@ -26,6 +26,28 @@ test('credentials', () => {
   S3.create({ region: 'us-east-1', access: 'a', secret: 'b' })
 })
 
+test('read: fail with missing body', async () => {
+  const mock = getObject.mockImplementation((v: any): any => {
+    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
+    return { promise: async () => ({}) }
+  })
+
+  const s3 = S3.create()
+  await expect(s3.read('bucket/key.txt')).rejects.toThrow()
+  expect(mock).toHaveBeenCalled()
+})
+
+test('read: fail with invalid body', async () => {
+  const mock = getObject.mockImplementation((v: any): any => {
+    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
+    return { promise: async () => ({ Body: 42 }) }
+  })
+
+  const s3 = S3.create()
+  await expect(s3.read('bucket/key.txt')).rejects.toThrow()
+  expect(mock).toHaveBeenCalled()
+})
+
 test('read', async () => {
   const mock = getObject.mockImplementation((v: any): any => {
     expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
@@ -33,7 +55,9 @@ test('read', async () => {
   })
 
   const s3 = S3.create()
-  expect((await s3.read('bucket/key.txt')).toString()).toEqual('asdf')
+  expect(Utils.arrayBufferToString(await s3.read('bucket/key.txt'))).toEqual(
+    'asdf'
+  )
   expect(mock).toHaveBeenCalled()
 
   expect(s3.read('')).rejects.toThrow()
@@ -48,9 +72,11 @@ test('read range', async () => {
   })
 
   const s3 = S3.create()
-  expect(await s3.read('bucket/key.txt', { range: [1, 5] })).toEqual(
-    Buffer.from(data.slice(1, 5))
-  )
+  expect(
+    Utils.arrayBufferToString(
+      await s3.read('bucket/key.txt', { range: [1, 5] })
+    )
+  ).toEqual(data.slice(1, 5))
 })
 
 test('write', async () => {
@@ -183,6 +209,7 @@ test('bad list', async () => {
   mock.mockClear()
 })
 
+/*
 test('read stream', async () => {
   const mock = getObject.mockImplementation((v: any): any => {
     expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
@@ -282,3 +309,4 @@ test('write stream', async () => {
     s3.writeStream('bucket', Stream.Readable.from('asdf'))
   ).rejects.toThrow()
 })
+*/
