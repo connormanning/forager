@@ -55,7 +55,7 @@ export function create({
   async function read(
     path: string,
     { range }: Types.ReadOptions = {}
-  ): Promise<ArrayBuffer> {
+  ): Promise<Uint8Array> {
     if (range) throw new Error('Range read not supported for Dropbox')
     const response = await dbx.filesDownload({
       path: coercePath(path),

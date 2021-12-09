@@ -39,9 +39,9 @@ async function get(url: RequestInfo, { range, ...options }: Options = {}) {
 export async function read(
   path: string,
   options?: Options
-): Promise<ArrayBuffer> {
+): Promise<Uint8Array> {
   const response = await get(path, options)
-  return response.arrayBuffer()
+  return new Uint8Array(await response.arrayBuffer())
 }
 /*
 export async function createReadStream(

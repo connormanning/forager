@@ -52,7 +52,7 @@ export function create(
   async function read(
     path: string,
     { range }: Types.ReadOptions = {}
-  ): Promise<ArrayBuffer> {
+  ): Promise<Uint8Array> {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
 
@@ -64,10 +64,7 @@ export function create(
       throw new Error('Missing response body from S3')
     }
     if (body instanceof Buffer || body instanceof Uint8Array) {
-      return body.buffer.slice(
-        body.byteOffset,
-        body.byteOffset + body.byteLength
-      )
+      return body
     }
     throw new Error('Invalid response from S3')
   }

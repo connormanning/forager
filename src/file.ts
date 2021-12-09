@@ -5,7 +5,7 @@ import * as Types from './types'
 
 export async function drain(
   stream: NodeJS.ReadableStream
-): Promise<ArrayBuffer> {
+): Promise<Uint8Array> {
   return await new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
     stream.on('data', (chunk) => chunks.push(chunk))
@@ -17,7 +17,7 @@ export async function drain(
 export async function read(
   path: string,
   { range }: Types.ReadOptions = {}
-): Promise<ArrayBuffer> {
+): Promise<Uint8Array> {
   const [begin = 0, end = Infinity] = range || []
   if (begin < 0 || end < 0 || begin > end) throw new Error('Invalid range')
 

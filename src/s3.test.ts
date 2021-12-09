@@ -64,6 +64,29 @@ test('read', async () => {
   expect(s3.read('bucket')).rejects.toThrow()
 })
 
+test('read exact', async () => {
+  const mock = getObject.mockImplementation((v: any): any => {
+    expect(v).toEqual({ Bucket: 'bucket', Key: 'key.txt' })
+    const body = 'asdf'
+    const ab = new ArrayBuffer(body.length)
+    const view = new Uint8Array(ab)
+    for (let i = 0; i < body.length; ++i) {
+      view[i] = body.charCodeAt(i)
+    }
+
+    return { promise: async () => ({ Body: Buffer.from(view) }) }
+  })
+
+  const s3 = S3.create()
+  expect(Utils.arrayBufferToString(await s3.read('bucket/key.txt'))).toEqual(
+    'asdf'
+  )
+  expect(mock).toHaveBeenCalled()
+
+  expect(s3.read('')).rejects.toThrow()
+  expect(s3.read('bucket')).rejects.toThrow()
+})
+
 test('read range', async () => {
   const data = 'abcdef'
   const mock = getObject.mockImplementation((v: any): any => {

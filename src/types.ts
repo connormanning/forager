@@ -11,7 +11,7 @@ export { Range }
 export type ReadOptions = { range?: Range }
 
 export type Readable = {
-  read(path: string, options?: ReadOptions): Promise<ArrayBuffer>
+  read(path: string, options?: ReadOptions): Promise<Uint8Array>
 }
 export type Writable = {
   write(path: string, data: ArrayBuffer | string): Promise<void>
