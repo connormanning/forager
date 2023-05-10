@@ -1,6 +1,12 @@
-import { S3 } from 'aws-sdk'
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3'
 import { lookup } from 'mime-types'
 import { popSlash } from 'protopath'
+import { Readable } from 'stream'
 
 import * as Types from './types'
 import { has } from './utils'
@@ -24,10 +30,15 @@ export function isOptions(o: unknown): o is Options {
   return false
 }
 
-function getS3(options?: Options): S3 {
-  if (!options) return new S3({ apiVersion })
+function getS3(options?: Options): S3Client {
+  if (!options) return new S3Client({ apiVersion })
+
   const { region, access: accessKeyId, secret: secretAccessKey } = options
-  return new S3({ apiVersion, region, accessKeyId, secretAccessKey })
+  return new S3Client({
+    apiVersion,
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+  })
 }
 
 export function getParts(path: string): [string, string | undefined] {
@@ -40,9 +51,7 @@ export function getParts(path: string): [string, string | undefined] {
 
 export function create(
   options?: Options
-): Types.Listable &
-  Types.Readable &
-  Types.Writable /*
+): Types.Listable & Types.Readable & Types.Writable /*
   &
   Types.StreamReadable &
   Types.StreamWritable
@@ -55,24 +64,35 @@ export function create(
   ): Promise<Uint8Array> {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 read - no object specified')
+    const command = new GetObjectCommand({
+      Bucket,
+      Key,
+      Range: range ? Types.Range.toHeaderValue(range) : undefined,
+    })
 
-    const options: S3.GetObjectRequest = { Bucket, Key }
-    if (range) options.Range = Types.Range.toHeaderValue(range)
-
-    const { Body: body } = await s3.getObject(options).promise()
-    if (!body) {
-      throw new Error('Missing response body from S3')
-    }
-    if (body instanceof Buffer || body instanceof Uint8Array) {
-      return body
-    }
-    throw new Error('Invalid response from S3')
+    const { Body: body } = await s3.send(command)
+    if (!body) throw new Error('Missing response body from S3')
+    return drain(body as Readable)
   }
   async function write(path: string, data: ArrayBuffer | string) {
     const [Bucket, Key] = getParts(path)
     if (!Key) throw new Error('Invalid S3 write - no object specified')
     const ContentType = lookup(path) || undefined
-    await s3.putObject({ Bucket, Key, Body: data, ContentType }).promise()
+    const command = new PutObjectCommand({
+      Bucket,
+      Key,
+      Body: typeof data === 'string' ? data : Buffer.from(data),
+      ContentType,
+    })
+    await s3.send(command)
+  }
+  async function drain(stream: Readable): Promise<Uint8Array> {
+    return await new Promise((resolve, reject) => {
+      const chunks: Uint8Array[] = []
+      stream.on('data', (chunk) => chunks.push(chunk))
+      stream.on('error', reject)
+      stream.on('end', () => resolve(Buffer.concat(chunks)))
+    })
   }
 
   /*
@@ -105,8 +125,13 @@ export function create(
     let list: Types.List = []
 
     do {
-      const params = { Bucket, Prefix, Delimiter: '/', ContinuationToken }
-      const response = await s3.listObjectsV2(params).promise()
+      const command = new ListObjectsV2Command({
+        Bucket,
+        Prefix,
+        Delimiter: '/',
+        ContinuationToken,
+      })
+      const response = await s3.send(command)
       if (!response.CommonPrefixes || !response.Contents) {
         throw new Error('Unexpected S3 list response')
       }
